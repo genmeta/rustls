@@ -2233,6 +2233,9 @@ impl Codec<'_> for CertificateRequestPayload {
 
 extension_struct! {
     pub(crate) struct CertificateRequestExtensions {
+        ExtensionType::StatusRequest =>
+            pub(crate) certificate_status_request: Option<()>,
+
         ExtensionType::SignatureAlgorithms =>
             pub(crate) signature_algorithms: Option<Vec<SignatureScheme>>,
 

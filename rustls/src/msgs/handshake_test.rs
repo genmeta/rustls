@@ -1014,6 +1014,7 @@ fn sample_certificate_request_payload_tls13() -> CertificateRequestPayloadTls13 
     CertificateRequestPayloadTls13 {
         context: PayloadU8::new(vec![1, 2, 3]),
         extensions: CertificateRequestExtensions {
+            certificate_status_request: None,
             signature_algorithms: Some(vec![SignatureScheme::ECDSA_NISTP256_SHA256]),
             authority_names: Some(vec![DistinguishedName::from(vec![1, 2, 3])]),
             certificate_compression_algorithms: Some(vec![CertificateCompressionAlgorithm::Zlib]),

@@ -927,6 +927,10 @@ impl State<ClientConnectionData> for ExpectCertificateRequest {
             &compat_sigschemes,
             Some(certreq.context.0.clone()),
             compat_compressor,
+            certreq
+                .extensions
+                .certificate_status_request
+                .is_some(),
         );
 
         Ok(if self.offered_cert_compression {
@@ -1234,15 +1238,21 @@ fn emit_compressed_certificate_tls13(
     auth_context: Option<Vec<u8>>,
     compressor: &dyn compress::CertCompressor,
     config: &ClientConfig,
+    ocsp_requested: bool,
 ) {
-    let mut cert_payload = CertificatePayloadTls13::new(certkey.cert.iter(), None);
+    let mut cert_payload = CertificatePayloadTls13::new(
+        certkey.cert.iter(),
+        ocsp_requested
+            .then_some(certkey.ocsp.as_deref())
+            .flatten(),
+    );
     cert_payload.context = PayloadU8::new(auth_context.clone().unwrap_or_default());
 
     let Ok(compressed) = config
         .cert_compression_cache
         .compression_for(compressor, &cert_payload)
     else {
-        return emit_certificate_tls13(flight, Some(certkey), auth_context);
+        return emit_certificate_tls13(flight, Some(certkey), auth_context, ocsp_requested);
     };
 
     flight.add(HandshakeMessagePayload(
@@ -1254,11 +1264,15 @@ fn emit_certificate_tls13(
     flight: &mut HandshakeFlightTls13<'_>,
     certkey: Option<&CertifiedKey>,
     auth_context: Option<Vec<u8>>,
+    ocsp_requested: bool,
 ) {
     let certs = certkey
         .map(|ck| ck.cert.as_ref())
         .unwrap_or(&[][..]);
-    let mut cert_payload = CertificatePayloadTls13::new(certs.iter(), None);
+    let ocsp = certkey
+        .filter(|_| ocsp_requested)
+        .and_then(|certkey| certkey.ocsp.as_deref());
+    let mut cert_payload = CertificatePayloadTls13::new(certs.iter(), ocsp);
     cert_payload.context = PayloadU8::new(auth_context.unwrap_or_default());
 
     flight.add(HandshakeMessagePayload(HandshakePayload::CertificateTls13(
@@ -1369,7 +1383,7 @@ impl State<ClientConnectionData> for ExpectFinished {
                 ClientAuthDetails::Empty {
                     auth_context_tls13: auth_context,
                 } => {
-                    emit_certificate_tls13(&mut flight, None, auth_context);
+                    emit_certificate_tls13(&mut flight, None, auth_context, false);
                 }
                 ClientAuthDetails::Verify {
                     auth_context_tls13: auth_context,
@@ -1377,13 +1391,14 @@ impl State<ClientConnectionData> for ExpectFinished {
                 } if cx.data.ech_status == EchStatus::Rejected => {
                     // If ECH was offered, and rejected, we MUST respond with
                     // an empty certificate message.
-                    emit_certificate_tls13(&mut flight, None, auth_context);
+                    emit_certificate_tls13(&mut flight, None, auth_context, false);
                 }
                 ClientAuthDetails::Verify {
                     certkey,
                     signer,
                     auth_context_tls13: auth_context,
                     compressor,
+                    ocsp_requested,
                 } => {
                     if let Some(compressor) = compressor {
                         emit_compressed_certificate_tls13(
@@ -1392,9 +1407,15 @@ impl State<ClientConnectionData> for ExpectFinished {
                             auth_context,
                             compressor,
                             &st.config,
+                            ocsp_requested,
                         );
                     } else {
-                        emit_certificate_tls13(&mut flight, Some(&certkey), auth_context);
+                        emit_certificate_tls13(
+                            &mut flight,
+                            Some(&certkey),
+                            auth_context,
+                            ocsp_requested,
+                        );
                     }
                     emit_certverify_tls13(&mut flight, signer.as_ref())?;
                 }

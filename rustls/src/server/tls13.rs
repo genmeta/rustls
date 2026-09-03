@@ -19,7 +19,7 @@ use crate::error::{Error, InvalidMessage, PeerIncompatible, PeerMisbehaved};
 use crate::hash_hs::HandshakeHash;
 use crate::log::{debug, trace, warn};
 use crate::msgs::codec::{Codec, Reader};
-use crate::msgs::enums::KeyUpdateRequest;
+use crate::msgs::enums::{ExtensionType, KeyUpdateRequest};
 use crate::msgs::handshake::{
     CERTIFICATE_MAX_SIZE_LIMIT, CertificateChain, CertificatePayloadTls13, HandshakeMessagePayload,
     HandshakePayload, NewSessionTicketPayloadTls13,
@@ -701,6 +701,10 @@ mod client_hello {
         let cr = CertificateRequestPayloadTls13 {
             context: PayloadU8::empty(),
             extensions: CertificateRequestExtensions {
+                certificate_status_request: config
+                    .verifier
+                    .request_client_ocsp()
+                    .then_some(()),
                 signature_algorithms: Some(
                     config
                         .verifier
@@ -1040,16 +1044,27 @@ impl State<ServerConnectionData> for ExpectCertificate {
             HandshakePayload::CertificateTls13
         )?;
 
-        // We don't send any CertificateRequest extensions, so any extensions
-        // here are illegal.
-        if certp
+        let requested_ocsp = self
+            .config
+            .verifier
+            .request_client_ocsp();
+        let has_unsolicited_extension = certp
             .entries
             .iter()
-            .any(|e| !e.extensions.only_contains(&[]))
-        {
+            .enumerate()
+            .any(|(index, entry)| {
+                let allowed = if requested_ocsp && index == 0 {
+                    &[ExtensionType::StatusRequest][..]
+                } else {
+                    &[][..]
+                };
+                !entry.extensions.only_contains(allowed)
+            });
+        if has_unsolicited_extension {
             return Err(PeerMisbehaved::UnsolicitedCertExtension.into());
         }
 
+        let client_ocsp = certp.end_entity_ocsp();
         let client_cert = certp.into_certificate_chain();
 
         let mandatory = self
@@ -1080,7 +1095,7 @@ impl State<ServerConnectionData> for ExpectCertificate {
 
         self.config
             .verifier
-            .verify_client_cert(end_entity, intermediates, now)
+            .verify_client_cert_with_ocsp(end_entity, intermediates, &client_ocsp, now)
             .map_err(|err| {
                 cx.common
                     .send_cert_verify_error_alert(err)

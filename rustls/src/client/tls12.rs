@@ -766,6 +766,7 @@ impl State<ClientConnectionData> for ExpectCertificateRequest<'_> {
             &certreq.sigschemes,
             NO_CONTEXT,
             no_compression,
+            false,
         );
 
         Ok(Box::new(ExpectServerDone {
