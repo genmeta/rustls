@@ -5,8 +5,9 @@ use pki_types::{DnsName, UnixTime};
 use zeroize::Zeroizing;
 
 use crate::client::ResolvesClientCert;
+use crate::crypto::CryptoProvider;
 use crate::enums::{CipherSuite, ProtocolVersion};
-use crate::error::InvalidMessage;
+use crate::error::{Error, InvalidMessage};
 use crate::msgs::base::{MaybeEmpty, PayloadU8, PayloadU16};
 use crate::msgs::codec::{Codec, Reader};
 #[cfg(feature = "tls12")]
@@ -134,6 +135,84 @@ impl Tls13ClientSessionValue {
 
     pub fn quic_params(&self) -> Vec<u8> {
         self.quic_params.0.clone()
+    }
+
+    /// Encodes the secret client resumption state for an external protected store.
+    #[doc(hidden)]
+    pub fn encode_resumption_state(&self) -> Zeroizing<Vec<u8>> {
+        let mut encoded = Vec::new();
+        self.suite
+            .common
+            .suite
+            .encode(&mut encoded);
+        self.age_add.encode(&mut encoded);
+        self.max_early_data_size
+            .encode(&mut encoded);
+        self.common.ticket.encode(&mut encoded);
+        self.common.secret.encode(&mut encoded);
+        self.common.epoch.encode(&mut encoded);
+        self.common
+            .lifetime_secs
+            .encode(&mut encoded);
+        self.common
+            .server_cert_chain
+            .encode(&mut encoded);
+        self.quic_params.encode(&mut encoded);
+        Zeroizing::new(encoded)
+    }
+
+    /// Decodes state produced by [`Self::encode_resumption_state`] and binds it to
+    /// the verifier and client credential resolver of the current configuration.
+    #[doc(hidden)]
+    pub fn decode_resumption_state(
+        encoded: &[u8],
+        provider: &CryptoProvider,
+        server_cert_verifier: Arc<dyn ServerCertVerifier>,
+        client_creds: Arc<dyn ResolvesClientCert>,
+    ) -> Result<Self, Error> {
+        let mut reader = Reader::init(encoded);
+        let suite_id = CipherSuite::read(&mut reader)?;
+        let suite = provider
+            .cipher_suites
+            .iter()
+            .find(|suite| suite.suite() == suite_id)
+            .and_then(|suite| suite.tls13())
+            .ok_or_else(|| Error::General("stored session cipher suite is unavailable".into()))?;
+        let age_add = u32::read(&mut reader)?;
+        let max_early_data_size = u32::read(&mut reader)?;
+        let ticket = Arc::new(PayloadU16::read(&mut reader)?);
+        let secret = Zeroizing::new(PayloadU8::read(&mut reader)?);
+        let epoch = u64::read(&mut reader)?;
+        let lifetime_secs = u32::read(&mut reader)?;
+        let server_cert_chain = Arc::new(CertificateChain::read(&mut reader)?.into_owned());
+        let quic_params = PayloadU16::read(&mut reader)?;
+        reader.expect_empty("client resumption state")?;
+
+        Ok(Self {
+            suite,
+            age_add,
+            max_early_data_size,
+            common: ClientSessionCommon {
+                ticket,
+                secret,
+                epoch,
+                lifetime_secs,
+                server_cert_chain,
+                server_cert_verifier: Arc::downgrade(&server_cert_verifier),
+                client_creds: Arc::downgrade(&client_creds),
+            },
+            quic_params,
+        })
+    }
+
+    /// Returns the ticket expiry time advertised by the server.
+    #[doc(hidden)]
+    pub fn resumption_expiry(&self) -> UnixTime {
+        UnixTime::since_unix_epoch(core::time::Duration::from_secs(
+            self.common
+                .epoch
+                .saturating_add(u64::from(self.common.lifetime_secs)),
+        ))
     }
 }
 
