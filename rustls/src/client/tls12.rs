@@ -775,6 +775,7 @@ impl State<ClientConnectionData> for ExpectCertificateRequest<'_> {
             &signature_schemes,
             NO_CONTEXT,
             no_compression,
+            false,
         );
 
         Ok(Box::new(ExpectServerDone {

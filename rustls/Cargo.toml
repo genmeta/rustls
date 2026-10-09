@@ -1,18 +1,22 @@
 [package]
-name = "rustls"
+name = "qrustls"
 version = "0.23.45"
 edition = "2021"
 rust-version = "1.71"
 license = "Apache-2.0 OR ISC OR MIT"
 readme = "../README.md"
-description = "Rustls is a modern TLS library written in Rust."
-homepage = "https://github.com/rustls/rustls"
-repository = "https://github.com/rustls/rustls"
+description = "Rustls fork for QUIC with client OCSP stapling and protected session persistence."
+homepage = "https://github.com/genmeta/rustls"
+repository = "https://github.com/genmeta/rustls"
 categories = ["network-programming", "cryptography"]
 autobenches = false
 autotests = false
 exclude = ["src/testdata", "tests/**"]
 build = "build.rs"
+
+# Preserve the upstream crate name for examples and existing consumers.
+[lib]
+name = "rustls"
 
 [features]
 default = ["aws_lc_rs", "logging", "prefer-post-quantum", "std", "tls12"]

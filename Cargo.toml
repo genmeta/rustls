@@ -105,4 +105,4 @@ lto = true
 # ensure all our tests are against the local copy, never
 # against the latest _published_ copy.
 [patch.crates-io]
-rustls = { path = "rustls" }
+qrustls = { path = "rustls" }

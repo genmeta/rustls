@@ -1,4 +1,5 @@
 [package]
+publish = false
 name = "rustls-post-quantum"
 version = "0.2.2"
 edition = "2021"
@@ -12,7 +13,7 @@ categories = ["network-programming", "cryptography"]
 autobenches = false
 
 [dependencies]
-rustls = { version = "0.23.22", features = ["aws_lc_rs", "prefer-post-quantum"], path = "../rustls" }
+rustls = { package = "qrustls", version = "0.23.22", features = ["aws_lc_rs", "prefer-post-quantum"], path = "../rustls" }
 
 [dev-dependencies]
 criterion = { workspace = true }

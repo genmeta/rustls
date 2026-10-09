@@ -86,6 +86,7 @@ pub(super) enum ClientAuthDetails {
         signer: Box<dyn sign::Signer>,
         auth_context_tls13: Option<Vec<u8>>,
         compressor: Option<&'static dyn compress::CertCompressor>,
+        ocsp_requested: bool,
     },
 }
 
@@ -96,6 +97,7 @@ impl ClientAuthDetails {
         sigschemes: &[SignatureScheme],
         auth_context_tls13: Option<Vec<u8>>,
         compressor: Option<&'static dyn compress::CertCompressor>,
+        ocsp_requested: bool,
     ) -> Self {
         let acceptable_issuers = canames
             .unwrap_or_default()
@@ -111,6 +113,7 @@ impl ClientAuthDetails {
                     signer,
                     auth_context_tls13,
                     compressor,
+                    ocsp_requested,
                 };
             }
         }

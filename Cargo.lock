@@ -333,7 +333,7 @@ dependencies = [
  "base64 0.22.1",
  "env_logger",
  "nix",
- "rustls",
+ "qrustls",
  "rustls-webpki",
 ]
 
@@ -2437,6 +2437,38 @@ dependencies = [
 ]
 
 [[package]]
+name = "qrustls"
+version = "0.23.45"
+dependencies = [
+ "aws-lc-rs",
+ "base64 0.22.1",
+ "bencher",
+ "brotli",
+ "brotli-decompressor",
+ "env_logger",
+ "hashbrown 0.15.5",
+ "hex",
+ "log",
+ "macro_rules_attribute",
+ "num-bigint",
+ "once_cell",
+ "rcgen",
+ "ring",
+ "rustls-pki-types",
+ "rustls-test",
+ "rustls-webpki",
+ "rustversion",
+ "serde",
+ "serde_json",
+ "subtle",
+ "time",
+ "webpki-roots",
+ "x509-parser 0.17.0",
+ "zeroize",
+ "zlib-rs",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.47"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2693,33 +2725,16 @@ dependencies = [
 [[package]]
 name = "rustls"
 version = "0.23.45"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0d41d731c7d2f962d1ccc364cec258de3c0e93b38c2fb3ba97ac74513048d634"
 dependencies = [
  "aws-lc-rs",
- "base64 0.22.1",
- "bencher",
- "brotli",
- "brotli-decompressor",
- "env_logger",
- "hashbrown 0.15.5",
- "hex",
  "log",
- "macro_rules_attribute",
- "num-bigint",
  "once_cell",
- "rcgen",
- "ring",
  "rustls-pki-types",
- "rustls-test",
  "rustls-webpki",
- "rustversion",
- "serde",
- "serde_json",
  "subtle",
- "time",
- "webpki-roots",
- "x509-parser 0.17.0",
  "zeroize",
- "zlib-rs",
 ]
 
 [[package]]
@@ -2727,7 +2742,7 @@ name = "rustls-bench"
 version = "0.1.0"
 dependencies = [
  "clap",
- "rustls",
+ "qrustls",
  "rustls-graviola",
  "rustls-post-quantum",
  "rustls-test",
@@ -2744,9 +2759,9 @@ dependencies = [
  "clap",
  "crabgrind",
  "itertools 0.14.0",
+ "qrustls",
  "rayon",
  "rustc-hash",
- "rustls",
  "rustls-fuzzing-provider",
  "rustls-test",
  "tikv-jemallocator",
@@ -2756,9 +2771,9 @@ dependencies = [
 name = "rustls-connect-tests"
 version = "0.0.1"
 dependencies = [
+ "qrustls",
  "regex",
  "ring",
- "rustls",
  "tokio",
 ]
 
@@ -2771,8 +2786,8 @@ dependencies = [
  "hickory-resolver",
  "log",
  "mio",
+ "qrustls",
  "rcgen",
- "rustls",
  "serde",
  "tokio",
  "webpki-roots",
@@ -2783,7 +2798,7 @@ name = "rustls-fuzzing-provider"
 version = "0.1.0"
 dependencies = [
  "env_logger",
- "rustls",
+ "qrustls",
 ]
 
 [[package]]
@@ -2805,7 +2820,7 @@ dependencies = [
  "num-bigint",
  "once_cell",
  "openssl",
- "rustls",
+ "qrustls",
 ]
 
 [[package]]
@@ -2823,7 +2838,7 @@ version = "0.2.2"
 dependencies = [
  "criterion",
  "env_logger",
- "rustls",
+ "qrustls",
  "webpki-roots",
 ]
 
@@ -2841,10 +2856,10 @@ dependencies = [
  "hpke-rs-rust-crypto",
  "p256",
  "pkcs8",
+ "qrustls",
  "rand_core 0.6.4",
  "rcgen",
  "rsa",
- "rustls",
  "sha2",
  "signature",
  "webpki-roots",
@@ -2856,7 +2871,7 @@ name = "rustls-provider-test"
 version = "0.1.0"
 dependencies = [
  "hex",
- "rustls",
+ "qrustls",
  "rustls-provider-example",
  "serde",
  "serde_json",
@@ -2866,7 +2881,7 @@ dependencies = [
 name = "rustls-test"
 version = "0.1.0"
 dependencies = [
- "rustls",
+ "qrustls",
 ]
 
 [[package]]

@@ -1,60 +1,68 @@
-## Before making a release
+# Releasing qrustls
 
-1. Run `cargo update` followed by `cargo outdated`, to check if we have any
-   dependency updates which are not already automatically taken by their semver specs.
-   - If we do, take them if possible.  There should be dependabot PRs submitted for these already, but if
-     not make separate commits for these and land those first.
-2. Run the daily-tests CI workflow to check if we have any unfixed regressions.
-   You can run the workflow manually for the to-be-released branch by visiting
-   [the daily-tests workflow](https://github.com/rustls/rustls/actions/workflows/daily-tests.yml)
-   in your browser and selecting "Run workflow".
-3. Update `rustls/Cargo.toml` to set the correct version. Then run `cargo update` again in repo root and in `fuzz/`
-   so that lock files pick the new rustls version.
-4. Make a commit with the new version number, something like 'Prepare $VERSION'.  This
-   should not contain functional changes: just version numbers, and perhaps markdown changes.
-5. Do a dry run: in `rustls/` check `cargo publish --dry-run`.
-   - Do not use `--allow-dirty`; use a separate working tree if needed.
-6. Come up with text detailing headline changes for this release.  General guidelines:
-   * :green_heart: include any breaking changes.
-   * :green_heart: include any major new headline features.
-   * :green_heart: include any major, user-visible bug fixes.
-   * :green_heart: include any new API deprecations.
-   * :green_heart: emphasise contributions from outside the maintainer team.
-   * :x: omit any internal build, process or test improvements.
-   * :x: omit any minor or user-invisible bug fixes.
-   * :x: omit any changes to dependency versions (unless these cause breaking changes).
-7. Open a PR with the above commit and include the release notes in the description.
-   Wait for review and CI to confirm it as green.
-   - Any red _should_ naturally block the release.
-   - If rustc nightly is broken, this _may_ be acceptable if the reason is understood
-     and does not point to a defect in rustls.  eg, at the time of writing in releasing 0.20:
-     - `cargo fuzz` is broken: https://github.com/rust-fuzz/cargo-fuzz/issues/276
-     - oss fuzz is broken: https://github.com/google/oss-fuzz/issues/6268
-     (Both of these share the same root cause of LLVM13 breaking changes; which are
-      unfortunately common when rustc nightly takes a new LLVM.)
+## 0.23.45 provenance
 
-## Making a release
+- Upstream tag: `v/0.23.45`.
+- Upstream commit: `2976d90fd1c2db6b518700dd101b714069cfcb17`.
+- Previous qtls dependency: `22dec513c4ebdf89f113f46e100393cf18963aa6`
+  (Rustls 0.23.31 plus the two patches below).
+- Preserved patch: `e9f0b4ce1e09f9325b69c9a132712db549f82224`, client OCSP stapling.
+- Preserved patch: `22dec513c4ebdf89f113f46e100393cf18963aa6`, TLS 1.3 session codec.
 
-1. Tag the released version: eg. `git tag -m '0.20.0' v/0.20.0`
-2. Push the tag: eg. `git push origin v/0.20.0`
-3. Do the release: `cargo publish` when sat in `rustls/`.
-   - Do not use `--allow-dirty`; use a separate working tree if needed.
+Use the `qrustls-0.23.45` branch. The original `main` branch is a 0.24 development
+version and is not compatible with qtls's current backend integration.
 
-## After making a release
+The Cargo package is `qrustls`, version `0.23.45`; the library name remains
+`rustls`. Keep dependencies aliased with `package = "qrustls"`. The fork uses
+upstream's licenses. Only `qrustls` is intended for publication from this workspace.
+The repository URL remains `https://github.com/genmeta/rustls`; the local directory
+rename does not rename the GitHub repository.
 
-1. Create a new GitHub release for that tag.  Use "Generate release notes" (against the tag for the previous release)
-   as a starting point for the release description.  Then add the "headlines" produced earlier at the top.
-2. Update dependent crates (eg, hyper-rustls, rustls-native-certs, etc.) if this was a semver-incompatible release.
+## Validation
 
-## Maintenance point releases
+From this repository:
 
-When point releases for bug fixes and small backwards compatible changes, but `main` contains unreleased breaking
-changes we follow a modified release process using a longer-lived maintenance branch.
+```sh
+cargo test -p qrustls --lib --no-default-features --features std,ring
+cargo test -p qrustls --no-default-features --features std,ring,tls12 --test api --test client_cert_verifier --test server_cert_verifier --test unbuffered
+cargo test -p qrustls --doc
+cargo publish -p qrustls --registry crates-io --dry-run
+```
 
-1. Check if there is an existing release branch, e.g. `rel-0.21` for point releases in the `0.21.x` series.
-   - If there is, use that branch.
-   - If there is not, create a new branch from the tag for the previous release, e.g. `git checkout -b rel-0.21 v/0.21.0`.
-     Remember to also create a branch protection rule for the release branch, matching the settings from `main`.
-2. Make pull-requests for any changes you want to include in the point release, targeted against the release branch.
-3. Follow the usual release process, but use the release branch instead of `main` when making the release.
-   - For example, `cargo publish` should be run from the release branch, not `main`.
+From the sibling `../dquic` repository:
+
+```sh
+cargo test -p qtls
+cargo test -p qtls --no-default-features --features aws-lc-rs
+cargo test -p qconnection --test components
+cargo test -p qtransport --lib --tests
+cargo check --workspace --all-targets
+```
+
+The qtls tests cover mutual authentication, mandatory and optional client OCSP,
+server OCSP, QUIC v1/v2 keys, and stateful/stateless resumption. The upstream
+API tests also exercise TLS 1.2/1.3 and QUIC handshake behavior. Tests using local
+sockets require an environment that permits binding sockets.
+
+During local preparation, `--allow-dirty` may be added to the dry run to verify
+uncommitted changes. Before a real release, commit the reviewed changes and repeat
+the dry run without that flag. Verify FIPS and supported cross-platform/MSRV builds
+in CI; local Ring/AWS-LC tests do not establish FIPS certification.
+
+## Publication order
+
+1. Review the diff and CI, commit the release, and verify a clean checkout.
+2. Confirm availability/ownership of the `qrustls` name on crates.io. A local
+   package or successful dry run does not reserve the name or verify upload rights.
+3. Repeat `cargo publish -p qrustls --registry crates-io --dry-run`.
+4. Publish only after approval: `cargo publish -p qrustls --registry crates-io`.
+5. Tag the release as `qrustls/v0.23.45` and push the reviewed branch and tag.
+6. After crates.io serves `qrustls 0.23.45`, remove the local `path` fields from
+   the three qrustls dependencies in dquic (`qtls`, `qconnection`, `qtransport`),
+   retain their package aliases and exact versions, then rerun the dquic checks.
+7. Prepare qtls and its dependent crates separately before removing their
+   `publish = false` flags; qtls integration tests also rely on workspace fixtures.
+
+External crypto providers compiled against upstream `rustls` have distinct types
+and cannot be passed to qrustls. In particular, the optional upstream Graviola
+benchmark backend is not part of the qrustls release validation.

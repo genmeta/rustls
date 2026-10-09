@@ -1,3 +1,28 @@
+# qrustls
+
+`qrustls` is the DQuic fork of Rustls, based on upstream **0.23.45**
+(`2976d90fd1c2db6b518700dd101b714069cfcb17`). It preserves the client OCSP
+stapling and TLS 1.3 resumption-state APIs used by `qtls` from the earlier fork
+(`22dec513c4ebdf89f113f46e100393cf18963aa6`).
+
+The Cargo package is `qrustls`; the library retains the `rustls` crate name.
+Use an explicit dependency alias:
+
+```toml
+rustls = { package = "qrustls", version = "0.23.45", default-features = false, features = ["std", "ring"] }
+```
+
+This is an independently maintained fork, not an upstream Rustls release.
+Types from the upstream `rustls` package and `qrustls` are distinct: all crates
+that exchange TLS configurations, providers or keys must use the same package.
+The resumption-state codec contains secrets and must only be used with an
+authenticated, encrypted store, as implemented by `qtls`.
+
+The upstream licenses and documentation below are retained. See [RELEASING.md](RELEASING.md)
+for the fork's provenance and release checks.
+
+---
+
 <p align="center">
   <img width="460" height="300" src="https://raw.githubusercontent.com/rustls/rustls/main/admin/rustls-logo-web.png">
 </p>

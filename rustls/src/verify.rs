@@ -171,6 +171,13 @@ pub trait ClientCertVerifier: Debug + Send + Sync {
         self.offer_client_auth()
     }
 
+    /// Returns `true` to request an OCSP response for the client's leaf certificate.
+    ///
+    /// This sends an empty `status_request` extension in TLS 1.3 CertificateRequest.
+    fn request_client_ocsp(&self) -> bool {
+        false
+    }
+
     /// Returns the [`DistinguishedName`] [subjects] that the server will hint to clients to
     /// identify acceptable authentication trust anchors.
     ///
@@ -222,6 +229,21 @@ pub trait ClientCertVerifier: Debug + Send + Sync {
         intermediates: &[CertificateDer<'_>],
         now: UnixTime,
     ) -> Result<ClientCertVerified, Error>;
+
+    /// Verify a client certificate chain together with its stapled OCSP response.
+    ///
+    /// The default preserves compatibility for existing verifiers. Implementations that return
+    /// `true` from [`Self::request_client_ocsp`] should override this method.
+    fn verify_client_cert_with_ocsp(
+        &self,
+        end_entity: &CertificateDer<'_>,
+        intermediates: &[CertificateDer<'_>],
+        ocsp_response: &[u8],
+        now: UnixTime,
+    ) -> Result<ClientCertVerified, Error> {
+        let _ = ocsp_response;
+        self.verify_client_cert(end_entity, intermediates, now)
+    }
 
     /// Verify a signature allegedly by the given client certificate.
     ///

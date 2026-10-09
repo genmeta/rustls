@@ -222,6 +222,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "qrustls"
+version = "0.23.45"
+dependencies = [
+ "log",
+ "once_cell",
+ "rustls-pki-types",
+ "rustls-webpki",
+ "subtle",
+ "zeroize",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.40"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -274,24 +286,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "rustls"
-version = "0.23.45"
-dependencies = [
- "log",
- "once_cell",
- "rustls-pki-types",
- "rustls-webpki",
- "subtle",
- "zeroize",
-]
-
-[[package]]
 name = "rustls-fuzz"
 version = "0.0.1"
 dependencies = [
  "env_logger",
  "libfuzzer-sys",
- "rustls",
+ "qrustls",
  "rustls-fuzzing-provider",
 ]
 
@@ -299,7 +299,7 @@ dependencies = [
 name = "rustls-fuzzing-provider"
 version = "0.1.0"
 dependencies = [
- "rustls",
+ "qrustls",
 ]
 
 [[package]]
